@@ -1,6 +1,6 @@
 
 import axios from 'axios';
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useForm, Controller } from "react-hook-form";
 import CheckBox from '@react-native-community/checkbox';
@@ -10,12 +10,12 @@ import { FlatList, SafeAreaView, View, Text, ScrollView, TouchableOpacity, Modal
 
 import Footer from "assets/layout/footer/Footer";
 import OrderWaitingStyle from '../Stylesheet/OrderApproveStyle';
-import OrderButton from '../../../../component/order/OrderButton';
-import OrderHeader from '../../../../component/order/OrderHeader';
+import OrderButton from 'components/order/OrderButton';
+import OrderHeader from 'components/order/OrderHeader';
 
 import OrderApproveStyle from '../Stylesheet/OrderApproveStyle';
 
-import { useGetPostById, UseGetProductsByPage }  from 'utils/hooks/GetProducts'
+import { useGetProductsByPage, useGetPostById }  from 'utils/hooks/GetProducts'
 
 const OrderApprove = () => {
 
@@ -24,20 +24,28 @@ const OrderApprove = () => {
 
     const [modalVisible, setModalVisible] = useState<boolean>(false);
 
-    const control = useForm();
+    const { control, handleSubmit, formState: { errors } } = useForm();
 
     const queryClient = useQueryClient();
     const page = 10;
 
-    const { data, isLoading } = UseGetProductsByPage();
+    const { data, isLoading, isError, error } = useGetProductsByPage(page);
 
-    // if (isLoading) {
-    //     return <Text>Loading...</Text>;
-    // }
+    const [postId, setPostId] = useState<number | null>(null); // postId = null
+    const [post, setPost] = useState<any>(null); // post = null
+    const { data: postData, isLoading: postIsLoading, isError: postIsError, error: postError } = useGetPostById(postId || 0); // postId = 0
 
-    // if (isError) {
-    //     return <Text>Error: {error.message}</Text>;
-    // }
+    useEffect(() => {
+        // if not loading, not error and postData is not null then set post = postData
+        if (!postIsLoading && !postIsError && postData) { 
+            setPost(postData);
+        }
+    }, [postIsLoading, postIsError, postData]);
+
+    const handleButtonClick = (id: number) => {
+        setPostId(id);
+        console.log('id', id);
+    };
 
     return (
         <SafeAreaView style={OrderWaitingStyle.OrderWating}>
@@ -57,6 +65,12 @@ const OrderApprove = () => {
                     <View style={OrderApproveStyle.Container}></View>
                 </Modal>
 
+                {isLoading ? (
+                <Text>Loading...</Text>
+                ) : isError ? (
+                    <Text>Error: :D</Text>
+                ) : (
+
                 <FlatList
                     style={OrderWaitingStyle.container}
                     data={data}
@@ -66,7 +80,9 @@ const OrderApprove = () => {
                             <View style={OrderWaitingStyle.BodyTop}>
                                 <View style={OrderWaitingStyle.BodyHeader}>
                                     <Text style={OrderWaitingStyle.BodyTitle}>Mã yêu cầu: <Text style={OrderWaitingStyle.BodyTitleBold}>{item.id}</Text></Text>
-                                    <TouchableOpacity style={OrderWaitingStyle.BodyExtand}>
+                                    <TouchableOpacity 
+                                        style={OrderWaitingStyle.BodyExtand}
+                                    >
                                         <Icon name="angle-up" size={15} color="#000" />
                                     </TouchableOpacity>
                                     <CheckBox
@@ -90,9 +106,7 @@ const OrderApprove = () => {
                                 </View>
                                 <View style={OrderWaitingStyle.BodyButton}>
                                     <TouchableOpacity
-                                        onPress={() => {
-                                            console.log("Product ID by console: ", item.id);
-                                        }}
+                                        onPress={() => handleButtonClick(item.id) }
                                         style={OrderWaitingStyle.BodyButtonItems2}
                                     >
                                         <Text style={OrderWaitingStyle.BodyButtonText2}>Xem</Text>
@@ -110,6 +124,8 @@ const OrderApprove = () => {
                         </View>
                     )}
                 />
+
+            )}
 
                 {/* <Modal
                     animationType="slide"
